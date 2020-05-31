@@ -13,6 +13,7 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import java.util.HashMap;
 import java.util.Set;
 
 /**
@@ -26,11 +27,26 @@ public class MainActivity extends AppCompatActivity {
     // Nothing special about 312, random.
     private static int REQUEST_ENABLE_BT = 312;
     private boolean bluetoothForbidden = false;
-    private BluetoothReceiver bluetoothReceiver;
+    private BluetoothStateChangeReceiver bluetoothStateChangeReceiver;
+    private BluetoothDiscoveredReceiver bluetoothDiscoveredReceiver;
+    private HashMap<String, String> discoveredDevices = new HashMap<String, String>();
 
     /**********************************************************************************************
      * Lifecycle methods
      **********************************************************************************************/
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (bluetoothNotSupported) {
+            return;
+        }
+        // Don't forget to unregister the ACTION_FOUND receiver.
+        unregisterReceiver(bluetoothStateChangeReceiver);
+        unregisterReceiver(bluetoothDiscoveredReceiver);
+        // cancel discovery, as well
+        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        bluetoothAdapter.cancelDiscovery();
+    }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -43,7 +59,17 @@ public class MainActivity extends AppCompatActivity {
                 MainActivity.this.showPairedDevicesAsTextViews();
             }
         });
-        bluetoothReceiver = new BluetoothReceiver(this);
+        Button b2 = findViewById(R.id.btnViewDiscoverDevices);
+        b2.setEnabled(false);
+        b2.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+                    bluetoothAdapter.startDiscovery();
+            }
+        });
+        bluetoothStateChangeReceiver = new BluetoothStateChangeReceiver(this);
+        bluetoothDiscoveredReceiver = new BluetoothDiscoveredReceiver(this);
     }
 
     @Override
@@ -70,17 +96,18 @@ public class MainActivity extends AppCompatActivity {
         if (bluetoothNotSupported) {
             return;
         }
-        unregisterReceiver(bluetoothReceiver);
+        unregisterReceiver(bluetoothStateChangeReceiver);
+        unregisterReceiver(bluetoothDiscoveredReceiver);
     }
 
     private void registerBluetoothBroadcastReceiver() {
-        IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
-        registerReceiver(bluetoothReceiver, filter);
+        IntentFilter bluetoothChangedFilter =
+                new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
+        registerReceiver(bluetoothStateChangeReceiver, bluetoothChangedFilter);
+        IntentFilter bluetoothDiscoveredFilter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+        registerReceiver(bluetoothDiscoveredReceiver, bluetoothDiscoveredFilter);
     }
 
-    private void unregisterBluetoothBroadcastReceiver() {
-        unregisterReceiver(bluetoothReceiver);
-    }
     /**********************************************************************************************
      * Bluetooth handling methods
      **********************************************************************************************/
@@ -107,8 +134,7 @@ public class MainActivity extends AppCompatActivity {
     private void handleBluetoothNotSupported() {
         TextView tv = findViewById(R.id.bluetoothStatus);
         tv.setText(R.string.bluetooth_unavailable);
-        Button b = findViewById(R.id.btnViewPairedDevices);
-        b.setEnabled(false);
+        enableButtons(false);
     }
 
     /**
@@ -117,8 +143,7 @@ public class MainActivity extends AppCompatActivity {
     private void handleBluetoothIsSupported() {
         TextView tv = findViewById(R.id.bluetoothStatus);
         tv.setText(R.string.bluetooth_available);
-        Button b = findViewById(R.id.btnViewPairedDevices);
-        b.setEnabled(true);
+        enableButtons(true);
     }
 
     /**
@@ -127,8 +152,7 @@ public class MainActivity extends AppCompatActivity {
     private void handleBluetoothDisallowed() {
         TextView tv = findViewById(R.id.bluetoothStatus);
         tv.setText(R.string.bluetooth_disallowed);
-        Button b = findViewById(R.id.btnViewPairedDevices);
-        b.setEnabled(false);
+        enableButtons(false);
     }
 
     /**
@@ -161,8 +185,14 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "The RESULT_CANCELED was " + RESULT_CANCELED);
         // By setting this value, the app will not keep asking for permission to enable Bluetooth.
         bluetoothForbidden = resultCode == RESULT_CANCELED;
+        enableButtons(bluetoothForbidden);
+    }
+
+    private void enableButtons(boolean bluetoothForbidden) {
         Button b = findViewById(R.id.btnViewPairedDevices);
         b.setEnabled(bluetoothForbidden);
+        Button b2 = findViewById(R.id.btnViewDiscoverDevices);
+        b2.setEnabled(bluetoothForbidden);
     }
 
     protected void handleBluetoothChanged(int state) {
@@ -203,6 +233,45 @@ public class MainActivity extends AppCompatActivity {
             tv.setText(R.string.tv_no_devices_found);
             lLayout.addView(tv);
         }
+    }
 
+    private void showDiscoveredDevicesAsTextViews() {
+        LinearLayout lLayout = findViewById(R.id.lLayout);
+        // empty the LinearLayout, so we don't keep adding TextViews to it.
+        for (int i = 0; i < lLayout.getChildCount(); i++){
+            View v = lLayout.getChildAt(i);
+            if (v instanceof TextView) {
+                String text = ((TextView) v).getText().toString();
+                String value = discoveredDevices.get(text);
+                String displayString  = getFormattedDiscoveryText(value, text);
+                if (value == null) {
+                    // Not in the discovered devices list, remove it. Otherwise, keep it.
+                    lLayout.removeView(v);
+                }
+            }
+        }
+        if (discoveredDevices.size() > 0) {
+            // There are paired devices. Get the name and address of each paired device.
+            for (String deviceHardwareAddress : discoveredDevices.keySet()) {
+                String deviceName = discoveredDevices.get(deviceHardwareAddress);
+                String str = getFormattedDiscoveryText(deviceName, deviceHardwareAddress);
+                TextView tv = new TextView(this);
+                tv.setText(str);
+                lLayout.addView(tv);
+            }
+        } else {
+            TextView tv = new TextView(this);
+            tv.setText(R.string.tv_no_devices_discovered);
+            lLayout.addView(tv);
+        }
+    }
+
+    protected void handleBluetoothDiscovered(String deviceName, String deviceHardwareAddress) {
+        discoveredDevices.put(deviceHardwareAddress, deviceName);
+        showDiscoveredDevicesAsTextViews();
+    }
+
+    protected String getFormattedDiscoveryText(String deviceName, String deviceHardwareAddress) {
+        return "< " + deviceName + " | " + deviceHardwareAddress + " >";
     }
 }

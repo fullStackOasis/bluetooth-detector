@@ -10,17 +10,18 @@ import android.util.Log;
 /**
  * If a user enables or disables Bluetooth, let MainActivity know about it.
  */
-public class BluetoothReceiver extends BroadcastReceiver {
-    private static String TAG = BluetoothReceiver.class.getCanonicalName();
+public class BluetoothStateChangeReceiver extends BroadcastReceiver {
+    private static String TAG = BluetoothStateChangeReceiver.class.getCanonicalName();
     private MainActivity activity;
 
-    BluetoothReceiver(MainActivity activity) {
+    BluetoothStateChangeReceiver(MainActivity activity) {
         this.activity = activity;
     }
     @Override
     public void onReceive(Context context, Intent intent) {
         Bundle extras = intent.getExtras();
         if (extras != null) {
+            /* Check for Bluetooth state being changed */
             int state = extras.getInt(BluetoothAdapter.EXTRA_STATE);
             int prevState = extras.getInt(BluetoothAdapter.EXTRA_PREVIOUS_STATE);
             /**
