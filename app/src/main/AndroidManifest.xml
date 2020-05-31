@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.fullstackoasis.bluetoothdetector">
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <!-- "If you want your app to initiate device discovery or manipulate Bluetooth settings,
+     you must declare the BLUETOOTH_ADMIN permission in addition to the BLUETOOTH permission.
+     Most applications need this permission solely for the ability to discover local Bluetooth
+     devices. The other abilities granted by this permission should not be used, unless the
+     application is a "power manager" that modifies Bluetooth settings upon user request."  -->
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
+        <activity android:name=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>
