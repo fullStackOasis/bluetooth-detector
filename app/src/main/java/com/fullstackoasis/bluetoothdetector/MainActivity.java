@@ -3,7 +3,11 @@ package com.fullstackoasis.bluetoothdetector;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.bluetooth.BluetoothAdapter;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.net.ConnectivityManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.TextView;
@@ -15,9 +19,11 @@ import android.widget.TextView;
  */
 public class MainActivity extends AppCompatActivity {
     private static String TAG = MainActivity.class.getCanonicalName();
-    private boolean bluetoothNotSupported = true;
+    private boolean bluetoothNotSupported = false;
+    // Nothing special about 312, random.
     private static int REQUEST_ENABLE_BT = 312;
     private boolean bluetoothForbidden = false;
+    private BluetoothReceiver bluetoothReceiver;
 
     /**********************************************************************************************
      * Lifecycle methods
@@ -26,19 +32,44 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        bluetoothReceiver = new BluetoothReceiver(this);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        if (bluetoothNotSupported) {
+            Log.d(TAG, "onResume, Bluetooth not supported");
+            return;
+        }
+        Log.d(TAG, "onResume Bluetooth IS supported");
+        // Maybe Bluetooth is enabled/disabled currently, but user could change this.
+        // So register to receive this change.
+        registerBluetoothBroadcastReceiver();
         if (bluetoothForbidden) {
             handleBluetoothDisallowed();
-            // User has forbidden bluetooth, so do not try to override this.
             return;
         }
         getBluetoothAdapter();
     }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (bluetoothNotSupported) {
+            return;
+        }
+        unregisterReceiver(bluetoothReceiver);
+    }
+
+    private void registerBluetoothBroadcastReceiver() {
+        IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
+        registerReceiver(bluetoothReceiver, filter);
+    }
+
+    private void unregisterBluetoothBroadcastReceiver() {
+        unregisterReceiver(bluetoothReceiver);
+    }
     /**********************************************************************************************
      * Bluetooth handling methods
      **********************************************************************************************/
@@ -47,6 +78,7 @@ public class MainActivity extends AppCompatActivity {
      * Check to see if Bluetooth is supported.
      */
     private void getBluetoothAdapter() {
+        Log.d(TAG, "getBluetoothAdapter");
         BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (bluetoothAdapter == null) {
             // Device doesn't support Bluetooth
@@ -114,4 +146,13 @@ public class MainActivity extends AppCompatActivity {
         bluetoothForbidden = resultCode == RESULT_CANCELED;
     }
 
+    protected void handleBluetoothChanged(int state) {
+        if (state == BluetoothAdapter.STATE_OFF) {
+            handleBluetoothDisallowed();
+        } else {
+            // Must be ON.
+            handleBluetoothIsSupported();
+        }
+
+    }
 }
