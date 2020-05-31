@@ -5,4 +5,5 @@
     <string name="bluetooth_disallowed">Bluetooth is <b>not allowed</b> on this device.</string>
     <string name="btn_view_paired_devices">Click to show paired devices</string>
     <string name="app_name">BlueToothDetector</string>
+    <string name="tv_no_devices_found">No Bluetooth devices found</string>
 </resources>

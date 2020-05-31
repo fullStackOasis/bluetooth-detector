@@ -10,6 +10,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import java.util.Set;
@@ -39,7 +40,7 @@ public class MainActivity extends AppCompatActivity {
         b.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                MainActivity.this.x();
+                MainActivity.this.showPairedDevicesAsTextViews();
             }
         });
         bluetoothReceiver = new BluetoothReceiver(this);
@@ -177,18 +178,30 @@ public class MainActivity extends AppCompatActivity {
      * Loop over paired devices.
      * https://developer.android.com/guide/topics/connectivity/bluetooth#QueryPairedDevices
      */
-    private void x() {
-        Log.d(TAG, "xxxxxxxxxxxxxxxxx");
+    private void showPairedDevicesAsTextViews() {
         BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
-
+        LinearLayout lLayout = findViewById(R.id.lLayout);
+        // empty the LinearLayout, so we don't keep adding TextViews to it.
+        for (int i = 0; i < lLayout.getChildCount(); i++){
+            View v = lLayout.getChildAt(i);
+            if (v instanceof TextView){
+                lLayout.removeView(v);
+            }
+        }
         if (pairedDevices.size() > 0) {
             // There are paired devices. Get the name and address of each paired device.
             for (BluetoothDevice device : pairedDevices) {
                 String deviceName = device.getName();
                 String deviceHardwareAddress = device.getAddress(); // MAC address
-                Log.d(TAG, "xxxxxxxxxxxxxxxxx " + deviceName);
+                TextView tv = new TextView(this);
+                tv.setText(deviceName);
+                lLayout.addView(tv);
             }
+        } else {
+            TextView tv = new TextView(this);
+            tv.setText(R.string.tv_no_devices_found);
+            lLayout.addView(tv);
         }
 
     }
