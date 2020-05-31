@@ -9,10 +9,16 @@
     tools:context=".MainActivity">
 
     <TextView
-        android:id="@+id/bluetooth_status"
+        android:id="@+id/bluetoothStatus"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/bluetooth_searching"
         android:textSize="16sp" />
+
+    <Button
+        android:id="@+id/btnViewPairedDevices"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/btn_view_paired_devices" />
 
 </LinearLayout>

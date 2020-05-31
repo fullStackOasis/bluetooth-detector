@@ -3,14 +3,16 @@ package com.fullstackoasis.bluetoothdetector;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.bluetooth.BluetoothAdapter;
-import android.content.BroadcastReceiver;
-import android.content.Context;
+import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.net.ConnectivityManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
+
+import java.util.Set;
 
 /**
  * This simple app is a Bluetooth detector.
@@ -32,6 +34,14 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        Button b = findViewById(R.id.btnViewPairedDevices);
+        b.setEnabled(false);
+        b.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                MainActivity.this.x();
+            }
+        });
         bluetoothReceiver = new BluetoothReceiver(this);
     }
 
@@ -94,24 +104,30 @@ public class MainActivity extends AppCompatActivity {
      * Handle Bluetooth not being supported by showing appropriate message to user.
      */
     private void handleBluetoothNotSupported() {
-        TextView tv = findViewById(R.id.bluetooth_status);
+        TextView tv = findViewById(R.id.bluetoothStatus);
         tv.setText(R.string.bluetooth_unavailable);
+        Button b = findViewById(R.id.btnViewPairedDevices);
+        b.setEnabled(false);
     }
 
     /**
      * Handle Bluetooth being supported by showing appropriate message to user.
      */
     private void handleBluetoothIsSupported() {
-        TextView tv = findViewById(R.id.bluetooth_status);
+        TextView tv = findViewById(R.id.bluetoothStatus);
         tv.setText(R.string.bluetooth_available);
+        Button b = findViewById(R.id.btnViewPairedDevices);
+        b.setEnabled(true);
     }
 
     /**
      * Handle Bluetooth being disallowed by showing appropriate message to user.
      */
     private void handleBluetoothDisallowed() {
-        TextView tv = findViewById(R.id.bluetooth_status);
+        TextView tv = findViewById(R.id.bluetoothStatus);
         tv.setText(R.string.bluetooth_disallowed);
+        Button b = findViewById(R.id.btnViewPairedDevices);
+        b.setEnabled(false);
     }
 
     /**
@@ -144,6 +160,8 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "The RESULT_CANCELED was " + RESULT_CANCELED);
         // By setting this value, the app will not keep asking for permission to enable Bluetooth.
         bluetoothForbidden = resultCode == RESULT_CANCELED;
+        Button b = findViewById(R.id.btnViewPairedDevices);
+        b.setEnabled(bluetoothForbidden);
     }
 
     protected void handleBluetoothChanged(int state) {
@@ -152,6 +170,25 @@ public class MainActivity extends AppCompatActivity {
         } else {
             // Must be ON.
             handleBluetoothIsSupported();
+        }
+    }
+
+    /**
+     * Loop over paired devices.
+     * https://developer.android.com/guide/topics/connectivity/bluetooth#QueryPairedDevices
+     */
+    private void x() {
+        Log.d(TAG, "xxxxxxxxxxxxxxxxx");
+        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
+
+        if (pairedDevices.size() > 0) {
+            // There are paired devices. Get the name and address of each paired device.
+            for (BluetoothDevice device : pairedDevices) {
+                String deviceName = device.getName();
+                String deviceHardwareAddress = device.getAddress(); // MAC address
+                Log.d(TAG, "xxxxxxxxxxxxxxxxx " + deviceName);
+            }
         }
 
     }

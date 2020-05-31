@@ -3,5 +3,6 @@
     <string name="bluetooth_unavailable">Sorry, this device does not support Bluetooth.</string>
     <string name="bluetooth_available">Bluetooth <b>is</b> available on this device.</string>
     <string name="bluetooth_disallowed">Bluetooth is <b>not allowed</b> on this device.</string>
+    <string name="btn_view_paired_devices">Click to show paired devices</string>
     <string name="app_name">BlueToothDetector</string>
 </resources>
