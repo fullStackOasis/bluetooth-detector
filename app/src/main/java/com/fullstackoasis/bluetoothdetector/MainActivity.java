@@ -110,6 +110,7 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "The resultCode was " + resultCode);
         Log.d(TAG, "The RESULT_OK was " + RESULT_OK);
         Log.d(TAG, "The RESULT_CANCELED was " + RESULT_CANCELED);
+        // By setting this value, the app will not keep asking for permission to enable Bluetooth.
         bluetoothForbidden = resultCode == RESULT_CANCELED;
     }
 
