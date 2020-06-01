@@ -57,6 +57,7 @@ public class MainActivity extends AppCompatActivity {
         b.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                clearLinearLayout();
                 MainActivity.this.showPairedDevicesAsTextViews();
             }
         });
@@ -66,6 +67,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 // clear out any TextViews listed.
+                discoveredDevices.clear();
+                clearLinearLayout();
                 MainActivity.this.showDiscoveredDevicesAsTextViews();
                 BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
                 // Discover. If any found, they'll be shown in the list.
@@ -108,6 +111,7 @@ public class MainActivity extends AppCompatActivity {
         IntentFilter bluetoothChangedFilter =
                 new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
         registerReceiver(bluetoothStateChangeReceiver, bluetoothChangedFilter);
+        Log.d(TAG, "reg with action found ");
         IntentFilter bluetoothDiscoveredFilter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
         registerReceiver(bluetoothDiscoveredReceiver, bluetoothDiscoveredFilter);
     }
@@ -217,12 +221,13 @@ public class MainActivity extends AppCompatActivity {
         Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
         LinearLayout lLayout = findViewById(R.id.lLayout);
         // empty the LinearLayout, so we don't keep adding TextViews to it.
+        /*
         for (int i = 0; i < lLayout.getChildCount(); i++){
             View v = lLayout.getChildAt(i);
             if (v instanceof TextView){
                 lLayout.removeView(v);
             }
-        }
+        }*/
         if (pairedDevices.size() > 0) {
             // There are paired devices. Get the name and address of each paired device.
             for (BluetoothDevice device : pairedDevices) {
@@ -239,21 +244,33 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void clearLinearLayout() {
+        LinearLayout lLayout = findViewById(R.id.lLayout);
+        lLayout.removeAllViews();
+    }
+
     private void showDiscoveredDevicesAsTextViews() {
         LinearLayout lLayout = findViewById(R.id.lLayout);
         // empty the LinearLayout, so we don't keep adding TextViews to it.
-        for (int i = 0; i < lLayout.getChildCount(); i++){
+        /*
+        int len = lLayout.getChildCount();
+        Log.d(TAG, "len " + len);
+        for (int i = 0; i < len; i++) {
             View v = lLayout.getChildAt(i);
+            Log.d(TAG, "i " + i + " v "  + v);
             if (v instanceof TextView) {
                 String text = ((TextView) v).getText().toString();
+                Log.d(TAG, "text " + text);
                 String value = discoveredDevices.get(text);
+                Log.d(TAG, "value " + value);
                 String displayString  = getFormattedDiscoveryText(value, text);
                 if (value == null) {
                     // Not in the discovered devices list, remove it. Otherwise, keep it.
+                    Log.d(TAG, "removing " + displayString);
                     lLayout.removeView(v);
                 }
             }
-        }
+        }*/
         if (discoveredDevices.size() > 0) {
             // There are paired devices. Get the name and address of each paired device.
             for (String deviceHardwareAddress : discoveredDevices.keySet()) {
