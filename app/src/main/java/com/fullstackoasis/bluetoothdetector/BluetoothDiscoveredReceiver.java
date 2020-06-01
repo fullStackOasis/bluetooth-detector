@@ -1,3 +1,6 @@
+/**
+ * Copyright 2020 Marya Doery no warantees expressed or implied.
+ */
 package com.fullstackoasis.bluetoothdetector;
 
 import android.bluetooth.BluetoothDevice;
@@ -6,6 +9,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
 
+/**
+ * Handles Bluetooth discovery
+ */
 public class BluetoothDiscoveredReceiver extends BroadcastReceiver {
     private static String TAG = BluetoothDiscoveredReceiver.class.getCanonicalName();
     private MainActivity activity;

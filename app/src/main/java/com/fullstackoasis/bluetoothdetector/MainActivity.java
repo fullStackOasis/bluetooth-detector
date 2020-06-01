@@ -1,12 +1,20 @@
+/**
+ * Copyright 2020 Marya Doery no warantees expressed or implied.
+ */
 package com.fullstackoasis.bluetoothdetector;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
+import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.le.BluetoothLeScanner;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -14,22 +22,31 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 /**
  * This simple app is a Bluetooth detector.
  * https://developer.android.com/guide/topics/connectivity/bluetooth
- * This app will use classic Bluetooth.
+ * This app uses classic Bluetooth and also can scan for LE Bluetooth (BLE)
+ * See https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.LeScanCallback
+ * for BLE Bluetooth scans. BluetoothAdapter.LeScanCallback is DEPRECATED, DO NOT USE. Instead,
+ * use ScanCallback.
  */
 public class MainActivity extends AppCompatActivity {
     private static String TAG = MainActivity.class.getCanonicalName();
     private boolean bluetoothNotSupported = false;
     // Nothing special about 312, random.
     private static int REQUEST_ENABLE_BT = 312;
+    private static int LOCATION_PERMISSION_REQUEST_CODE = 347;
+    private static int BLE_SCAN_MILLISECONDS = 12000;
     private boolean bluetoothForbidden = false;
     private BluetoothStateChangeReceiver bluetoothStateChangeReceiver;
     private BluetoothDiscoveredReceiver bluetoothDiscoveredReceiver;
     private HashMap<String, String> discoveredDevices = new HashMap<String, String>();
+    private HashMap<String, BLEBlob> discoveredBLEDevices = new HashMap<String, BLEBlob>();
+    private EverythingScanCallback everythingScanCallback;
+    private Handler handler = new Handler() {};
 
     /**********************************************************************************************
      * Lifecycle methods
@@ -52,6 +69,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        everythingScanCallback = new EverythingScanCallback(this);
         Button b = findViewById(R.id.btnViewPairedDevices);
         b.setEnabled(false);
         b.setOnClickListener(new View.OnClickListener() {
@@ -67,12 +85,41 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 // clear out any TextViews listed.
+                discoveredBLEDevices.clear();
                 discoveredDevices.clear();
                 clearLinearLayout();
-                MainActivity.this.showDiscoveredDevicesAsTextViews();
+                // showDiscoveredDevicesAsTextViews(discoveredDevices);
                 BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
                 // Discover. If any found, they'll be shown in the list.
                 bluetoothAdapter.startDiscovery();
+            }
+        });
+        Button b3 = findViewById(R.id.btnDiscoverBLEDevices);
+        b3.setEnabled(false);
+        b3.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // clear out any TextViews listed.
+                discoveredBLEDevices.clear();
+                discoveredDevices.clear();
+                clearLinearLayout();
+                // showDiscoveredBLEDevicesAsTextViews(discoveredBLEDevices);
+                BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+                BluetoothLeScanner scanner = bluetoothAdapter.getBluetoothLeScanner();
+                // Discover. If any found, they'll be shown in the list.
+                if (permissionHandling()) {
+                    Log.d(TAG, "Going to scan");
+                    scanner.startScan(everythingScanCallback);
+                    final Runnable r = new Runnable() {
+                        public void run() {
+                            Log.d(TAG, "Stopped scan");
+                            BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+                            BluetoothLeScanner scanner = bluetoothAdapter.getBluetoothLeScanner();
+                            scanner.stopScan(everythingScanCallback);
+                        }
+                    };
+                    handler.postDelayed(r, BLE_SCAN_MILLISECONDS);
+                }
             }
         });
         bluetoothStateChangeReceiver = new BluetoothStateChangeReceiver(this);
@@ -201,6 +248,8 @@ public class MainActivity extends AppCompatActivity {
         b.setEnabled(bluetoothForbidden);
         Button b2 = findViewById(R.id.btnViewDiscoverDevices);
         b2.setEnabled(bluetoothForbidden);
+        Button b3 = findViewById(R.id.btnDiscoverBLEDevices);
+        b3.setEnabled(bluetoothForbidden);
     }
 
     protected void handleBluetoothChanged(int state) {
@@ -249,32 +298,41 @@ public class MainActivity extends AppCompatActivity {
         lLayout.removeAllViews();
     }
 
-    private void showDiscoveredDevicesAsTextViews() {
+    /**
+     * Shows the "discovered" class Bluetooth devices in the scrollable list.
+     * @param devices
+     */
+    private void showDiscoveredDevicesAsTextViews(Map<String, String> devices) {
         LinearLayout lLayout = findViewById(R.id.lLayout);
-        // empty the LinearLayout, so we don't keep adding TextViews to it.
-        /*
-        int len = lLayout.getChildCount();
-        Log.d(TAG, "len " + len);
-        for (int i = 0; i < len; i++) {
-            View v = lLayout.getChildAt(i);
-            Log.d(TAG, "i " + i + " v "  + v);
-            if (v instanceof TextView) {
-                String text = ((TextView) v).getText().toString();
-                Log.d(TAG, "text " + text);
-                String value = discoveredDevices.get(text);
-                Log.d(TAG, "value " + value);
-                String displayString  = getFormattedDiscoveryText(value, text);
-                if (value == null) {
-                    // Not in the discovered devices list, remove it. Otherwise, keep it.
-                    Log.d(TAG, "removing " + displayString);
-                    lLayout.removeView(v);
-                }
-            }
-        }*/
-        if (discoveredDevices.size() > 0) {
+        // Note: layout should have been emptied already.
+        if (devices.size() > 0) {
             // There are paired devices. Get the name and address of each paired device.
-            for (String deviceHardwareAddress : discoveredDevices.keySet()) {
-                String deviceName = discoveredDevices.get(deviceHardwareAddress);
+            for (String deviceHardwareAddress : devices.keySet()) {
+                String deviceName = devices.get(deviceHardwareAddress);
+                String str = getFormattedDiscoveryText(deviceName, deviceHardwareAddress);
+                TextView tv = new TextView(this);
+                tv.setText(str);
+                lLayout.addView(tv);
+            }
+        } else {
+            TextView tv = new TextView(this);
+            tv.setText(R.string.tv_no_devices_discovered);
+            lLayout.addView(tv);
+        }
+    }
+
+    /**
+     * Shows the "discovered" class Bluetooth devices in the scrollable list.
+     * @param devices
+     */
+    private void showDiscoveredBLEDevicesAsTextViews(Map<String, BLEBlob> devices) {
+        LinearLayout lLayout = findViewById(R.id.lLayout);
+        // Note: layout should have been emptied already.
+        if (devices.size() > 0) {
+            // There are paired devices. Get the name and address of each paired device.
+            for (String deviceHardwareAddress : devices.keySet()) {
+                BLEBlob bleBlob = devices.get(deviceHardwareAddress);
+                String deviceName = devices.get(deviceHardwareAddress).getDevice().getName();
                 String str = getFormattedDiscoveryText(deviceName, deviceHardwareAddress);
                 TextView tv = new TextView(this);
                 tv.setText(str);
@@ -289,10 +347,37 @@ public class MainActivity extends AppCompatActivity {
 
     protected void handleBluetoothDiscovered(String deviceName, String deviceHardwareAddress) {
         discoveredDevices.put(deviceHardwareAddress, deviceName);
-        showDiscoveredDevicesAsTextViews();
+        showDiscoveredDevicesAsTextViews(discoveredDevices);
+    }
+
+    protected void handleBluetoothBLEDiscovered(String deviceHardwareAddress, BLEBlob blob) {
+        if (discoveredBLEDevices.get(deviceHardwareAddress) == null) {
+            discoveredBLEDevices.put(deviceHardwareAddress, blob);
+            Log.d(TAG, "SHOWING: handleBluetoothBLEDiscovered " + deviceHardwareAddress);
+            clearLinearLayout(); // Clear it out. discoveredBLEDevices caches the discovered devices
+            showDiscoveredBLEDevicesAsTextViews(discoveredBLEDevices);
+        } else {
+            Log.d(TAG,
+                    "handleBluetoothBLEDiscovered skipped already found " + deviceHardwareAddress);
+        }
     }
 
     protected String getFormattedDiscoveryText(String deviceName, String deviceHardwareAddress) {
-        return "< " + deviceName + " | " + deviceHardwareAddress + " >";
+        return "< " + deviceHardwareAddress + " | " + deviceName + " >";
     }
+
+    private boolean permissionHandling() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED) {
+            return true;
+        } else {
+            // Permission to access the location is missing. Show rationale and request permission
+            PermissionUtils.requestPermission(this, LOCATION_PERMISSION_REQUEST_CODE,
+                    Manifest.permission.ACCESS_FINE_LOCATION, true);
+            Log.d(TAG, "going to return false");
+            return false;
+        }
+
+    }
+
 }

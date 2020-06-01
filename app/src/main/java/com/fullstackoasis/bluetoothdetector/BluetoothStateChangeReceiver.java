@@ -1,3 +1,6 @@
+/**
+ * Copyright 2020 Marya Doery no warantees expressed or implied.
+ */
 package com.fullstackoasis.bluetoothdetector;
 
 import android.bluetooth.BluetoothAdapter;

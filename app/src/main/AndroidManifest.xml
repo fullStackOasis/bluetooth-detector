@@ -8,8 +8,11 @@
      devices. The other abilities granted by this permission should not be used, unless the
      application is a "power manager" that modifies Bluetooth settings upon user request."  -->
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"
+        android:required="true" />
     <uses-permission android:name="android.permission.ACTION_STATE_CHANGED" />
+    <!-- add potential use of low energy Bluetooth, AKA BLE -->
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="false"/>
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"

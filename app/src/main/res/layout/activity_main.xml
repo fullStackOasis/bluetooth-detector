@@ -27,6 +27,12 @@
         android:layout_height="wrap_content"
         android:text="@string/btn_view_discover_devices" />
 
+    <Button
+        android:id="@+id/btnDiscoverBLEDevices"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/btn_discover_ble_devices" />
+
     <ScrollView
         android:id="@+id/scrollView"
         android:layout_width="match_parent"

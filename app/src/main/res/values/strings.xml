@@ -8,4 +8,8 @@
     <string name="tv_no_devices_found">No Bluetooth devices found</string>
     <string name="tv_no_devices_discovered">No devices discovered</string>
     <string name="btn_view_discover_devices">Discover devices</string>
+    <string name="btn_discover_ble_devices">Discover BLE devices</string>
+    <string name="location_permission_denied">Location permission was denied</string>
+    <string name="permission_required_toast">Location permission required</string>
+    <string name="permission_rationale_location">Need location permission to scan for Bluetooth LE devices</string>
 </resources>
