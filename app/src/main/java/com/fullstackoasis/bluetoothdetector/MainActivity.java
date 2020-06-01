@@ -40,9 +40,10 @@ public class MainActivity extends AppCompatActivity {
         if (bluetoothNotSupported) {
             return;
         }
-        // Don't forget to unregister the ACTION_FOUND receiver.
-        unregisterReceiver(bluetoothStateChangeReceiver);
-        unregisterReceiver(bluetoothDiscoveredReceiver);
+        // Do not have to unregister these receivers because they are unregistered in onPause,
+        // which should always have been called before onDestroy
+        // unregisterReceiver(bluetoothStateChangeReceiver);
+        // unregisterReceiver(bluetoothDiscoveredReceiver);
         // cancel discovery, as well
         BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         bluetoothAdapter.cancelDiscovery();
@@ -64,8 +65,11 @@ public class MainActivity extends AppCompatActivity {
         b2.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                // clear out any TextViews listed.
+                MainActivity.this.showDiscoveredDevicesAsTextViews();
                 BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-                    bluetoothAdapter.startDiscovery();
+                // Discover. If any found, they'll be shown in the list.
+                bluetoothAdapter.startDiscovery();
             }
         });
         bluetoothStateChangeReceiver = new BluetoothStateChangeReceiver(this);
