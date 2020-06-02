@@ -109,6 +109,11 @@ public class MainActivity extends AppCompatActivity {
                 // Discover. If any found, they'll be shown in the list.
                 if (permissionHandling()) {
                     Log.d(TAG, "Going to scan");
+                    // see https://developer.android.com/guide/topics/connectivity/bluetooth-le#find
+                    // "Note: You can only scan for Bluetooth LE devices or scan for Classic
+                    // Bluetooth devices, as described in Bluetooth. You cannot scan for both
+                    // Bluetooth LE and classic devices at the same time"
+                    enableButtons(false);
                     scanner.startScan(everythingScanCallback);
                     final Runnable r = new Runnable() {
                         public void run() {
@@ -116,6 +121,7 @@ public class MainActivity extends AppCompatActivity {
                             BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
                             BluetoothLeScanner scanner = bluetoothAdapter.getBluetoothLeScanner();
                             scanner.stopScan(everythingScanCallback);
+                            enableButtons(true);
                         }
                     };
                     handler.postDelayed(r, BLE_SCAN_MILLISECONDS);
@@ -330,12 +336,23 @@ public class MainActivity extends AppCompatActivity {
         // Note: layout should have been emptied already.
         if (devices.size() > 0) {
             // There are paired devices. Get the name and address of each paired device.
-            for (String deviceHardwareAddress : devices.keySet()) {
+            for (final String deviceHardwareAddress : devices.keySet()) {
                 BLEBlob bleBlob = devices.get(deviceHardwareAddress);
-                String deviceName = devices.get(deviceHardwareAddress).getDevice().getName();
-                String str = getFormattedDiscoveryText(deviceName, deviceHardwareAddress);
+                final String deviceName = devices.get(deviceHardwareAddress).getDevice().getName();
+                final String str = getFormattedDiscoveryText(deviceName, deviceHardwareAddress);
                 TextView tv = new TextView(this);
                 tv.setText(str);
+                tv.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        Intent i = new Intent(MainActivity.this, DeviceControlActivity.class);
+                        i.putExtra(DeviceControlActivity.EXTRAS_DEVICE_NAME, deviceName);
+                        i.putExtra(DeviceControlActivity.EXTRAS_DEVICE_ADDRESS, deviceHardwareAddress);
+                        Log.d(TAG,
+                                "going to intent for " + deviceName + ", " + deviceHardwareAddress);
+                        startActivity(i);
+                    }
+                });
                 lLayout.addView(tv);
             }
         } else {
